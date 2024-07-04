@@ -131,12 +131,22 @@ func createSMPolicyProcedure(request models.SmPolicyContextData) (
 	sliceid := sstStr + request.SliceInfo.Sd
 	self := pcf_context.PCF_Self()
 	imsi := strings.TrimPrefix(ue.Supi, "imsi-")
+	logger.SMpolicylog.Infof("request", request)
 	if subsPolicyData, ok := self.PcfSubscriberPolicyData[imsi]; ok {
 		logger.SMpolicylog.Infof("Supi[%s] exist in PcfSubscriberPolicyData", imsi)
 		if PccPolicy, ok1 := subsPolicyData.PccPolicy[sliceid]; ok1 {
 			if sessPolicy, exist := PccPolicy.SessionPolicy[request.Dnn]; exist {
 				for _, sessRule := range sessPolicy.SessionRules {
-					decision.SessRules[sessRule.SessRuleId] = deepcopy.Copy(sessRule).(*models.SessionRule)
+					if request.SubsSessAmbr != nil && request.SubsDefQos != nil {
+						decision.SessRules[sessRule.SessRuleId].SessRuleId = sessRule.SessRuleId
+						decision.SessRules[sessRule.SessRuleId].AuthSessAmbr = request.SubsSessAmbr
+						decision.SessRules[sessRule.SessRuleId].AuthDefQos.Arp = request.SubsDefQos.Arp
+						decision.SessRules[sessRule.SessRuleId].AuthDefQos.Var5qi = request.SubsDefQos.Var5qi
+						decision.SessRules[sessRule.SessRuleId].AuthDefQos.PriorityLevel = request.SubsDefQos.PriorityLevel
+						logger.SMpolicylog.Infof("decision.SessRules[sessRule.SessRuleId]: %v", decision.SessRules[sessRule.SessRuleId])
+					} else {
+						decision.SessRules[sessRule.SessRuleId] = deepcopy.Copy(sessRule).(*models.SessionRule)
+					}
 				}
 			} else {
 				logger.SMpolicylog.Infof("Requested Dnn[%s] is not exist in local policy", request.Dnn)
@@ -147,13 +157,25 @@ func createSMPolicyProcedure(request models.SmPolicyContextData) (
 			for key, pccRule := range PccPolicy.PccRules {
 				decision.PccRules[key] = deepcopy.Copy(pccRule).(*models.PccRule)
 			}
+			logger.SMpolicylog.Infof("PccPolicy.PccRules: %v, decision.PccRules: %v", PccPolicy.PccRules, decision.PccRules)
 
 			for key, qosData := range PccPolicy.QosDecs {
-				decision.QosDecs[key] = deepcopy.Copy(qosData).(*models.QosData)
+				defQos := request.SubsDefQos
+				if defQos != nil {
+					decision.QosDecs[key].Arp = defQos.Arp
+					decision.QosDecs[key].Var5qi = defQos.Var5qi
+					decision.QosDecs[key].PriorityLevel = defQos.PriorityLevel
+				} else {
+					decision.QosDecs[key] = deepcopy.Copy(qosData).(*models.QosData)
+				}
+
 			}
+			logger.SMpolicylog.Infof("PccPolicy.QosDecs: %v, decision.QosDecs: %v", PccPolicy.QosDecs, decision.QosDecs)
+
 			for key, trafficData := range PccPolicy.TraffContDecs {
 				decision.TraffContDecs[key] = deepcopy.Copy(trafficData).(*models.TrafficControlData)
 			}
+			logger.SMpolicylog.Infof("PccPolicy.TraffContDecs: %v, decision.TraffContDecs: %v", PccPolicy.TraffContDecs, decision.TraffContDecs)
 			logger.SMpolicylog.Infof("PccPolicy in SM Policy Decision[%v]: %v", sliceid, PccPolicy)
 		} else {
 			logger.SMpolicylog.Warnf("Slice[%v] not configured for subscriber", sliceid)
@@ -165,43 +187,6 @@ func createSMPolicyProcedure(request models.SmPolicyContextData) (
 		logger.SMpolicylog.Warnf("Can't find UE[%s] in local policy", ue.Supi)
 		return nil, nil, &problemDetail
 	}
-	/*var ambr *models.Ambr
-	//sstStr := strconv.Itoa(int(request.SliceInfo.Sst))
-	if cAmbr, ok := pcfSelf.AmbrMap[sstStr+request.SliceInfo.Sd]; !ok {
-		ambr = request.SubsSessAmbr
-	} else {
-		ambr = &cAmbr
-	}*/
-	/*	SessRuleId := fmt.Sprintf("SessRuleId-%d", request.PduSessionId)
-		sessRule := models.SessionRule{
-			AuthSessAmbr: ambr,
-			SessRuleId:   SessRuleId,
-			// RefUmData
-			// RefCondData
-		}
-
-		//Check if local config has pre-configured def Qos for the slice(via ROC)
-		var defQos *models.SubscribedDefaultQos
-		if dQos, ok := pcfSelf.DefQosMap[sstStr+request.SliceInfo.Sd]; !ok {
-			defQos = request.SubsDefQos
-		} else {
-			//ARP and Priority not coming from ROC yet, copy from request
-			dQos.Arp = request.SubsDefQos.Arp
-			dQos.PriorityLevel = request.SubsDefQos.PriorityLevel
-			defQos = &dQos
-		}
-
-		if defQos != nil {
-			sessRule.AuthDefQos = &models.AuthorizedDefaultQos{
-				Var5qi:        defQos.Var5qi,
-				Arp:           defQos.Arp,
-				PriorityLevel: defQos.PriorityLevel,
-				// AverWindow
-				// MaxDataBurstVol
-			}
-		}
-		decision.SessRules[SessRuleId] = &sessRule
-	*/
 	// TODO: See how UDR used
 	dnnData := util.GetSMPolicyDnnData(smData, request.SliceInfo, request.Dnn)
 	if dnnData != nil {
@@ -253,6 +238,9 @@ func createSMPolicyProcedure(request models.SmPolicyContextData) (
 	}
 	logger.SMpolicylog.Tracef("SMPolicy PduSessionId[%d] Create", request.PduSessionId)
 	logger.SMpolicylog.Infof("SM Policy Decision Sent to SMF: %v", decision)
+	logger.SMpolicylog.Infof("decision.SessRules: %v", decision.SessRules)
+	logger.SMpolicylog.Infof("decision.PccRules: %v", decision.PccRules)
+	logger.SMpolicylog.Infof("decision.QosDecs: %v", decision.QosDecs)
 
 	return header, &decision, nil
 }
