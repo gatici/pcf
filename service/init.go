@@ -561,11 +561,6 @@ func getPccRules(slice *protos.NetworkSlice, sessionRule *models.SessionRule) (p
 				qos.MaxbrUl = sessionRule.AuthSessAmbr.Uplink
 				qos.MaxbrDl = sessionRule.AuthSessAmbr.Downlink
 			}
-			//rule.RefQosData = append(rule.RefQosData, qos.QosId)
-			//if pccPolicy.QosDecs == nil {
-			//	pccPolicy.QosDecs = make(map[string]*models.QosData)
-			//}
-			//pccPolicy.QosDecs[qos.QosId] = &qos
 		}
 		for _, pflow := range pccrule.FlowInfos {
 			var flow models.FlowInformation
@@ -622,7 +617,7 @@ func getPccRules(slice *protos.NetworkSlice, sessionRule *models.SessionRule) (p
 		}
 		pccPolicy.PccRules[pccrule.RuleId] = &rule
 	}
-
+	logger.GrpcLog.Infof("pccPolicy: %v", pccPolicy)
 	return
 }
 
@@ -701,7 +696,9 @@ func (pcf *PCF) UpdatePcfSubsriberPolicyData(slice *protos.NetworkSlice) {
 			}
 
 			dnn = devgroup.IpDomainDetails.DnnName
+			logger.GrpcLog.Infof("devgroup.IpDomainDetails.UeDnnQos: %v", devgroup.IpDomainDetails.UeDnnQos)
 			sessionrule = getSessionRule(devgroup)
+			logger.GrpcLog.Infof("sessionrule: %v", sessionrule)
 
 			for _, imsi := range slice.AddUpdatedImsis {
 				if ImsiExistInDeviceGroup(devgroup, imsi) {
@@ -729,6 +726,7 @@ func (pcf *PCF) UpdatePcfSubsriberPolicyData(slice *protos.NetworkSlice) {
 					policyData.PccPolicy[sliceid].SessionPolicy[dnn].SessionRules[sessionrule.SessRuleId] = sessionrule
 					// Added pcc rules
 					pccPolicy := getPccRules(slice, sessionrule)
+					logger.GrpcLog.Infof("pccPolicy: %v", pccPolicy)
 					for index, element := range pccPolicy.PccRules {
 						policyData.PccPolicy[sliceid].PccRules[index] = element
 					}
@@ -739,9 +737,14 @@ func (pcf *PCF) UpdatePcfSubsriberPolicyData(slice *protos.NetworkSlice) {
 						policyData.PccPolicy[sliceid].TraffContDecs[index] = element
 					}
 					policyData.CtxLog.Infof("Subscriber Detals: %v", policyData)
+					logger.GrpcLog.Infof("policyData: %v", policyData)
+					logger.GrpcLog.Infof("pccPolicy: %v", pccPolicy)
+					self.PcfSubscriberPolicyData[imsi] = policyData
+					logger.GrpcLog.Infof("self.PcfSubscriberPolicyData[imsi]: %v", self.PcfSubscriberPolicyData[imsi])
 				}
-				// self.DisplayPcfSubscriberPolicyData(imsi)
+
 			}
+
 		}
 
 		for _, imsi := range slice.DeletedImsis {
