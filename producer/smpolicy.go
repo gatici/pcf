@@ -131,7 +131,7 @@ func createSMPolicyProcedure(request models.SmPolicyContextData) (
 	sliceid := sstStr + request.SliceInfo.Sd
 	self := pcf_context.PCF_Self()
 	imsi := strings.TrimPrefix(ue.Supi, "imsi-")
-	logger.SMpolicylog.Infof("request", request)
+	logger.SMpolicylog.Infof("request: %v", request)
 	if subsPolicyData, ok := self.PcfSubscriberPolicyData[imsi]; ok {
 		logger.SMpolicylog.Infof("Supi[%s] exist in PcfSubscriberPolicyData", imsi)
 		if PccPolicy, ok1 := subsPolicyData.PccPolicy[sliceid]; ok1 {
