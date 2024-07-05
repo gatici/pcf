@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	"github.com/antihax/optional"
-	"github.com/mohae/deepcopy"
 	"github.com/omec-project/openapi"
 	"github.com/omec-project/openapi/Nudr_DataRepository"
 	"github.com/omec-project/openapi/models"
@@ -53,10 +52,10 @@ func createSMPolicyProcedure(request models.SmPolicyContextData) (
 	var err error
 	logger.SMpolicylog.Tracef("Handle Create SM Policy Request")
 	logger.SMpolicylog.Infof("request: %v", request)
-	logger.SMpolicylog.Infof("request.SubsDefQos: %v", request.SubsDefQos)
+	logger.SMpolicylog.Infof("request.SubsDefQos: %v", *request.SubsDefQos)
 	logger.SMpolicylog.Infof("request.SubsSessAmbr: %v", request.SubsSessAmbr)
 	logger.SMpolicylog.Infof("request.IpDomain: %v", request.IpDomain)
-	logger.SMpolicylog.Infof("request.SliceInfo: %v", request.SliceInfo)
+	logger.SMpolicylog.Infof("request.SliceInfo: %v", *request.SliceInfo)
 	logger.SMpolicylog.Infof("request.Dnn: %v", request.Dnn)
 	logger.SMpolicylog.Infof("request.PduSessionId: %v", request.PduSessionId)
 	logger.SMpolicylog.Infof("request.QosFlowUsage: %v", request.QosFlowUsage)
@@ -144,10 +143,11 @@ func createSMPolicyProcedure(request models.SmPolicyContextData) (
 	imsi := strings.TrimPrefix(ue.Supi, "imsi-")
 	if subsPolicyData, ok := self.PcfSubscriberPolicyData[imsi]; ok {
 		logger.SMpolicylog.Infof("Supi[%s] exist in PcfSubscriberPolicyData", imsi)
+		logger.SMpolicylog.Infof("subsPolicyData: %v", subsPolicyData)
 		if PccPolicy, ok1 := subsPolicyData.PccPolicy[sliceid]; ok1 {
 			if sessPolicy, exist := PccPolicy.SessionPolicy[request.Dnn]; exist {
 				for _, sessRule := range sessPolicy.SessionRules {
-					decision.SessRules[sessRule.SessRuleId] = deepcopy.Copy(sessRule).(*models.SessionRule)
+					decision.SessRules[sessRule.SessRuleId] = sessRule
 				}
 			} else {
 				logger.SMpolicylog.Infof("Requested Dnn[%s] is not exist in local policy", request.Dnn)
@@ -156,14 +156,14 @@ func createSMPolicyProcedure(request models.SmPolicyContextData) (
 			}
 
 			for key, pccRule := range PccPolicy.PccRules {
-				decision.PccRules[key] = deepcopy.Copy(pccRule).(*models.PccRule)
+				decision.PccRules[key] = pccRule
 			}
 
 			for key, qosData := range PccPolicy.QosDecs {
-				decision.QosDecs[key] = deepcopy.Copy(qosData).(*models.QosData)
+				decision.QosDecs[key] = qosData
 			}
 			for key, trafficData := range PccPolicy.TraffContDecs {
-				decision.TraffContDecs[key] = deepcopy.Copy(trafficData).(*models.TrafficControlData)
+				decision.TraffContDecs[key] = trafficData
 			}
 			logger.SMpolicylog.Infof("PccPolicy in SM Policy Decision[%v]: %v", sliceid, PccPolicy)
 		} else {
