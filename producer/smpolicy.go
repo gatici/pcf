@@ -28,10 +28,12 @@ import (
 func HandleCreateSmPolicyRequest(request *httpwrapper.Request) *httpwrapper.Response {
 	// step 1: log
 	logger.SMpolicylog.Infof("Handle CreateSmPolicy")
+	logger.SMpolicylog.Infof("request: %v", request)
 	// step 2: retrieve request
 	requestDataType := request.Body.(models.SmPolicyContextData)
 
 	// step 3: handle the message
+	logger.SMpolicylog.Infof("requestDataType: %v", requestDataType)
 	header, response, problemDetails := createSMPolicyProcedure(requestDataType)
 
 	// step 4: process the return value from step 3
@@ -50,6 +52,14 @@ func createSMPolicyProcedure(request models.SmPolicyContextData) (
 ) {
 	var err error
 	logger.SMpolicylog.Tracef("Handle Create SM Policy Request")
+	logger.SMpolicylog.Infof("request: %v", request)
+	logger.SMpolicylog.Infof("request.SubsDefQos: %v", request.SubsDefQos)
+	logger.SMpolicylog.Infof("request.SubsSessAmbr: %v", request.SubsSessAmbr)
+	logger.SMpolicylog.Infof("request.IpDomain: %v", request.IpDomain)
+	logger.SMpolicylog.Infof("request.SliceInfo: %v", request.SliceInfo)
+	logger.SMpolicylog.Infof("request.Dnn: %v", request.Dnn)
+	logger.SMpolicylog.Infof("request.PduSessionId: %v", request.PduSessionId)
+	logger.SMpolicylog.Infof("request.QosFlowUsage: %v", request.QosFlowUsage)
 
 	if request.Supi == "" || request.SliceInfo == nil || len(request.SliceInfo.Sd) != 6 {
 		problemDetail := util.GetProblemDetail("Errorneous/Missing Mandotory IE", util.ERROR_INITIAL_PARAMETERS)
@@ -59,6 +69,7 @@ func createSMPolicyProcedure(request models.SmPolicyContextData) (
 
 	pcfSelf := pcf_context.PCF_Self()
 	var ue *pcf_context.UeContext
+	logger.SMpolicylog.Infof("ue: %v", ue)
 	if val, exist := pcfSelf.UePool.Load(request.Supi); exist {
 		ue = val.(*pcf_context.UeContext)
 	}

@@ -698,7 +698,7 @@ func (pcf *PCF) UpdatePcfSubsriberPolicyData(slice *protos.NetworkSlice) {
 			dnn = devgroup.IpDomainDetails.DnnName
 			logger.GrpcLog.Infof("devgroup.IpDomainDetails.UeDnnQos: %v", devgroup.IpDomainDetails.UeDnnQos)
 			sessionrule = getSessionRule(devgroup)
-			logger.GrpcLog.Infof("sessionrule: %v", sessionrule)
+			logger.GrpcLog.Infof("sessionrule: %v", *sessionrule)
 
 			for _, imsi := range slice.AddUpdatedImsis {
 				if ImsiExistInDeviceGroup(devgroup, imsi) {
@@ -726,7 +726,6 @@ func (pcf *PCF) UpdatePcfSubsriberPolicyData(slice *protos.NetworkSlice) {
 					policyData.PccPolicy[sliceid].SessionPolicy[dnn].SessionRules[sessionrule.SessRuleId] = sessionrule
 					// Added pcc rules
 					pccPolicy := getPccRules(slice, sessionrule)
-					logger.GrpcLog.Infof("pccPolicy: %v", pccPolicy)
 					for index, element := range pccPolicy.PccRules {
 						policyData.PccPolicy[sliceid].PccRules[index] = element
 					}
@@ -737,10 +736,6 @@ func (pcf *PCF) UpdatePcfSubsriberPolicyData(slice *protos.NetworkSlice) {
 						policyData.PccPolicy[sliceid].TraffContDecs[index] = element
 					}
 					policyData.CtxLog.Infof("Subscriber Detals: %v", policyData)
-					logger.GrpcLog.Infof("policyData: %v", policyData)
-					logger.GrpcLog.Infof("pccPolicy: %v", pccPolicy)
-					self.PcfSubscriberPolicyData[imsi] = policyData
-					logger.GrpcLog.Infof("self.PcfSubscriberPolicyData[imsi]: %v", self.PcfSubscriberPolicyData[imsi])
 				}
 
 			}

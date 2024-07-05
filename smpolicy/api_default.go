@@ -30,6 +30,7 @@ func HTTPSmPoliciesPost(c *gin.Context) {
 	var smPolicyContextData models.SmPolicyContextData
 	// step 1: retrieve http request body
 	requestBody, err := c.GetRawData()
+	logger.SMpolicylog.Infof("requestBody: %+v", requestBody)
 	if err != nil {
 		problemDetail := models.ProblemDetails{
 			Title:  "System failure",
@@ -57,13 +58,16 @@ func HTTPSmPoliciesPost(c *gin.Context) {
 	}
 
 	req := httpwrapper.NewRequest(c.Request, smPolicyContextData)
+	logger.SMpolicylog.Infof("req: %+v", req)
 	rsp := producer.HandleCreateSmPolicyRequest(req)
+	logger.SMpolicylog.Infof("rsp: %+v", rsp)
 
 	// step 5: response
 	for key, val := range rsp.Header { // header response is optional
 		c.Header(key, val[0])
 	}
 	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	logger.SMpolicylog.Infof("responseBody: %+v", responseBody)
 	if err != nil {
 		logger.SMpolicylog.Errorln(err)
 		problemDetails := models.ProblemDetails{
